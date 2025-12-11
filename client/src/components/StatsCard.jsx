@@ -7,10 +7,10 @@ const StatsCard = ({ title, amount, type }) => {
     let bgClass = 'bg-primary';
 
     if (type === 'inflow') {
-        Icon = ArrowUpRight;
+        Icon = ArrowDownRight;
         colorVar = 'var(--success)';
     } else if (type === 'outflow') {
-        Icon = ArrowDownRight;
+        Icon = ArrowUpRight;
         colorVar = 'var(--danger)';
     }
 
@@ -46,7 +46,7 @@ const StatsCard = ({ title, amount, type }) => {
             fontWeight: '500',
         },
         amount: {
-            color: 'var(--text-primary)',
+            color: type === 'balance' ? (amount > 0 ? 'var(--success)' : 'var(--danger)') : colorVar,
             fontSize: 'clamp(1.1rem, 4vw, 1.5rem)',
             fontWeight: '700',
             marginTop: '0.25rem',
@@ -62,7 +62,7 @@ const StatsCard = ({ title, amount, type }) => {
             <div style={styles.content}>
                 <span style={styles.title}>{title}</span>
                 <span style={styles.amount}>
-                    {type === 'outflow' ? '-' : type === 'inflow' ? '+' : ''}₹{amount.toLocaleString()}
+                    {type === 'outflow' ? '-' : type === 'inflow' ? '+' : (amount > 0 ? '+' : '-')}₹{Math.abs(amount).toLocaleString()}
                 </span>
             </div>
         </div>

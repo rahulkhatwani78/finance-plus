@@ -142,7 +142,7 @@ const TransactionList = ({ transactions }) => {
                     <li key={t._id || t.id} style={styles.item}>
                         <div style={styles.left}>
                             <div style={styles.icon(t.type)}>
-                                {t.type === 'inflow' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                                {t.type === 'inflow' ? <ArrowDownRight size={20} /> : <ArrowUpRight size={20} />}
                             </div>
                             <div style={styles.info}>
                                 <span style={styles.source}>{t.source}</span>
