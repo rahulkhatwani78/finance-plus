@@ -5,7 +5,8 @@ import { formatDate } from '../config/utilities';
 const UpcomingModal = ({ isOpen, onClose, transactions }) => {
     if (!isOpen) return null;
 
-    const recurringTransactions = transactions.filter(t => t.type === 'outflow' && t.isRecurring);
+    const recurringTransactions = transactions.filter(t => t.type === 'outflow' && t.isRecurring && new Date(t.date) > new Date());
+    const sortedRecurringTransactions = recurringTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const styles = {
         overlay: {
@@ -106,13 +107,13 @@ const UpcomingModal = ({ isOpen, onClose, transactions }) => {
                     <button style={styles.closeBtn} onClick={onClose}><X size={20} /></button>
                 </div>
 
-                {recurringTransactions.length === 0 ? (
+                {sortedRecurringTransactions.length === 0 ? (
                     <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>
                         No recurring payments found
                     </p>
                 ) : (
                     <ul style={styles.list}>
-                        {recurringTransactions.map(t => (
+                        {sortedRecurringTransactions.map(t => (
                             <li key={t._id || t.id} style={styles.item}>
                                 <div style={styles.itemHeader}>
                                     <span style={styles.source}>{t.source}</span>
