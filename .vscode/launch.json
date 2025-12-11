@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "NODEMON DEBUG",
+            "runtimeExecutable": "npm",
+            "cwd": "D:/Rahul Khatwani/Personal/Projects/finance-plus/server",
+            "runtimeArgs": [
+                "start"
+            ],
+            "outputCapture": "std",
+        },
+        {
+            "type": "pwa-node",
+            "request": "launch",
+            "name": "NodeJsLaunch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "D:/Rahul Khatwani/Personal/Projects/finance-plus/server/index.js",
+            "runtimeArgs": [
+                "-r",
+                "esm"
+            ]
+        }
+    ]
+}
