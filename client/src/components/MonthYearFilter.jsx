@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 
 const MonthYearFilter = ({ selectedMonth, selectedYear, onMonthChange, onYearChange }) => {
     const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+    const years = Array.from({ length: 5 }, (_, i) => (currentYear + 1) - i);
     const months = [
         { value: '', label: 'All Months' },
         { value: '1', label: 'Jan' },

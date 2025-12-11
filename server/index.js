@@ -187,6 +187,9 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
             const startDate = `${year}-01-01`;
             const endDate = `${year}-12-31`;
             query.date = { $gte: startDate, $lte: endDate };
+        } else if (!year && month) {
+            // Only month selected (All Years for that month)
+            query.date = { $regex: `.*-${String(month).padStart(2, '0')}-.*` };
         }
         // If neither year nor month is selected, return all transactions (no date filter)
 
