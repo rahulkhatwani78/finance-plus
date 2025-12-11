@@ -193,7 +193,7 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
         }
         // If neither year nor month is selected, return all transactions (no date filter)
 
-        const transactions = await Transaction.find(query).sort({ date: -1, createdAt: -1 });
+        const transactions = await Transaction.find(query).sort({ date: 1, createdAt: 1 });
         res.json(transactions);
     } catch (err) {
         res.status(500).json({ error: err.message });
