@@ -15,6 +15,8 @@ const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/finance-plus';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
