@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Minus, LayoutDashboard, LogOut } from 'lucide-react';
+import { Plus, Minus, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import StatsCard from './components/StatsCard';
@@ -8,6 +8,7 @@ import TransactionForm from './components/TransactionForm';
 import UpcomingRecurring from './components/UpcomingRecurring';
 import UpcomingModal from './components/UpcomingModal';
 import ChangePasswordModal from './components/ChangePasswordModal';
+import ConfirmationModal from './components/ConfirmationModal';
 import MonthYearFilter from './components/MonthYearFilter';
 import ThemeToggle from './components/ThemeToggle';
 import { API_ENDPOINTS } from './config/api';
@@ -25,11 +26,20 @@ function App() {
     const [selectedYear, setSelectedYear] = useState(String(currentDate.getFullYear()));
     const [showUpcomingModal, setShowUpcomingModal] = useState(false);
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState(null);
+    const [confirmModal, setConfirmModal] = useState({ 
+        isOpen: false, 
+        title: '', 
+        message: '', 
+        onConfirm: null, 
+        type: 'danger', 
+        confirmText: '' 
+    });
+    const [categories, setCategories] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState('');
     const [theme, setTheme] = useState(() => {
         return localStorage.getItem('theme') || 'dark';
     });
-
-
 
     useEffect(() => {
         const savedToken = localStorage.getItem('token');
@@ -55,14 +65,27 @@ function App() {
     useEffect(() => {
         if (isAuthenticated && token) {
             fetchTransactions();
+            fetchCategories();
         }
-    }, [isAuthenticated, token, selectedMonth, selectedYear]);
+    }, [isAuthenticated, token, selectedMonth, selectedYear, selectedCategory]);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await axios.get(API_ENDPOINTS.CATEGORIES, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setCategories(res.data);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchTransactions = async () => {
         try {
             const params = {};
             if (selectedMonth) params.month = selectedMonth;
             if (selectedYear) params.year = selectedYear;
+            if (selectedCategory) params.category = selectedCategory;
 
             const res = await axios.get(API_ENDPOINTS.TRANSACTIONS, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -114,9 +137,80 @@ function App() {
         }
     };
 
+    const updateTransaction = async (transactionData) => {
+        try {
+            const { _id, ...data } = transactionData;
+            const res = await axios.put(`${API_ENDPOINTS.TRANSACTIONS}/${_id}`, data, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setTransactions(prev => prev.map(t => t._id === _id ? res.data : t));
+            setEditingTransaction(null);
+        } catch (error) {
+            console.error('Error updating transaction:', error);
+            alert('Failed to update transaction');
+        }
+    };
+
+    const deleteTransaction = async (id) => {
+        try {
+            await axios.delete(`${API_ENDPOINTS.TRANSACTIONS}/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setTransactions(prev => prev.filter(t => t._id !== id));
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+            alert('Failed to delete transaction');
+        }
+    };
+
+    const handleDeleteClick = (id) => {
+        const transaction = transactions.find(t => t._id === id);
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Transaction?',
+            message: `Are you sure you want to delete "${transaction?.source}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            type: 'danger',
+            onConfirm: () => {
+                deleteTransaction(id);
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const handleSubmitTransaction = (data) => {
+        if (data._id) {
+            updateTransaction(data);
+        } else {
+            addTransaction(data);
+        }
+    };
+
     const openModal = (type) => {
         setModalType(type);
+        setEditingTransaction(null);
         setIsModalOpen(true);
+    };
+
+    const handleEditClick = (transaction) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Edit Transaction?',
+            message: `Would you like to modify the transaction details for "${transaction.source}"?`,
+            confirmText: 'Edit Now',
+            type: 'primary',
+            onConfirm: () => {
+                setEditingTransaction(transaction);
+                setModalType(transaction.type);
+                setIsModalOpen(true);
+                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            }
+        });
+    };
+
+    const closeFormModal = () => {
+        setIsModalOpen(false);
+        setEditingTransaction(null);
     };
 
     if (!isAuthenticated) {
@@ -289,15 +383,50 @@ function App() {
                     {/* Main Controls - Wraps nicely on mobile */}
                     <div style={styles.headerActions}>
                         {/* Filters and Theme - Group 1 */}
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <MonthYearFilter
-                                selectedMonth={selectedMonth}
-                                selectedYear={selectedYear}
-                                onMonthChange={setSelectedMonth}
-                                onYearChange={setSelectedYear}
-                            />
-                            <ThemeToggle theme={theme} onToggle={toggleTheme} />
-                        </div>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <MonthYearFilter
+                                    selectedMonth={selectedMonth}
+                                    selectedYear={selectedYear}
+                                    onMonthChange={setSelectedMonth}
+                                    onYearChange={setSelectedYear}
+                                />
+                                <div style={{ position: 'relative', minWidth: '140px' }}>
+                                    <select
+                                        value={selectedCategory}
+                                        onChange={(e) => setSelectedCategory(e.target.value)}
+                                        style={{
+                                            appearance: 'none',
+                                            padding: '0.625rem 2.5rem 0.625rem 1rem',
+                                            background: 'var(--bg-secondary)',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 'var(--radius)',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.875rem',
+                                            outline: 'none',
+                                            cursor: 'pointer',
+                                            width: '100%',
+                                            height: '42px'
+                                        }}
+                                    >
+                                        <option value="">All Categories</option>
+                                        {[...new Set(categories.map(c => c.name))].sort().map(name => (
+                                            <option key={name} value={name}>{name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown 
+                                        size={16} 
+                                        style={{ 
+                                            position: 'absolute', 
+                                            right: '1rem', 
+                                            top: '50%', 
+                                            transform: 'translateY(-50%)', 
+                                            pointerEvents: 'none', 
+                                            color: 'var(--text-secondary)' 
+                                        }} 
+                                    />
+                                </div>
+                                <ThemeToggle theme={theme} onToggle={toggleTheme} />
+                            </div>
 
                         {/* Action Buttons - Group 2 */}
                         <div style={styles.actionButtons}>
@@ -338,14 +467,21 @@ function App() {
             </div>
 
             <div style={styles.section}>
-                <TransactionList transactions={transactions} />
+                <TransactionList 
+                    transactions={transactions} 
+                    onEdit={handleEditClick}
+                    onDelete={handleDeleteClick}
+                    username={username}
+                />
             </div>
 
             <TransactionForm
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onSubmit={addTransaction}
+                onClose={closeFormModal}
+                onSubmit={handleSubmitTransaction}
                 type={modalType}
+                initialData={editingTransaction}
+                categories={categories}
             />
 
             <UpcomingModal
@@ -358,6 +494,16 @@ function App() {
                 isOpen={showChangePasswordModal}
                 onClose={() => setShowChangePasswordModal(false)}
                 token={token}
+            />
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmText={confirmModal.confirmText}
+                type={confirmModal.type}
             />
         </div>
     );

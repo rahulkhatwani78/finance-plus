@@ -34,6 +34,10 @@ const TransactionSchema = new mongoose.Schema({
         type: String, // End date for recurring payments (YYYY-MM-DD)
         default: '',
     },
+    category: {
+        type: String,
+        default: 'Other',
+    },
     createdAt: {
         type: Date,
         default: Date.now,

@@ -10,6 +10,9 @@ export const API_ENDPOINTS = {
     // Transactions
     TRANSACTIONS: `${API_BASE_URL}/api/transactions`,
 
+    // Categories
+    CATEGORIES: `${API_BASE_URL}/api/categories`,
+
     // Health
     HEALTH: `${API_BASE_URL}/health`,
 };

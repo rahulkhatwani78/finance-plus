@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, Repeat, ArrowUpDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Repeat, ArrowUpDown, Pencil, Trash2 } from 'lucide-react';
 import { formatDate } from '../config/utilities';
 
-const TransactionList = ({ transactions }) => {
+const TransactionList = ({ transactions, onEdit, onDelete, username }) => {
     const [sortOrder, setSortOrder] = useState('latest'); // 'latest' or 'oldest'
 
     const toggleSort = () => {
@@ -100,13 +100,35 @@ const TransactionList = ({ transactions }) => {
             gap: '0.5rem',
             flexWrap: 'wrap',
         },
+        right: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'clamp(0.75rem, 2vw, 1.25rem)',
+            flexShrink: 0,
+        },
         amount: (type) => ({
             fontWeight: '600',
             fontSize: 'clamp(0.9rem, 3vw, 1rem)',
             color: type === 'inflow' ? 'var(--success)' : 'var(--text-primary)',
-            flexShrink: 0,
             whiteSpace: 'nowrap',
         }),
+        actions: {
+            display: 'flex',
+            gap: '0.5rem',
+            alignItems: 'center',
+        },
+        actionBtn: {
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            padding: '4px',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
         empty: {
             padding: 'clamp(2rem, 5vw, 3rem)',
             textAlign: 'center',
@@ -148,6 +170,18 @@ const TransactionList = ({ transactions }) => {
                                 <span style={styles.source}>{t.source}</span>
                                 <span style={styles.meta}>
                                     {formatDate(t.date)}
+                                    {t.category && (
+                                        <span style={{ 
+                                            background: 'var(--bg-primary)', 
+                                            padding: '2px 8px', 
+                                            borderRadius: '4px', 
+                                            fontSize: '0.75rem',
+                                            border: '1px solid var(--border)',
+                                            color: 'var(--text-primary)'
+                                        }}>
+                                            {t.category}
+                                        </span>
+                                    )}
                                     {t.isRecurring && (
                                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-primary)' }}>
                                             <Repeat size={12} /> Monthly
@@ -157,9 +191,33 @@ const TransactionList = ({ transactions }) => {
                                 </span>
                             </div>
                         </div>
-                        <span style={styles.amount(t.type)}>
-                            {t.type === 'inflow' ? '+' : '-'}₹{Number(t.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
+                        <div style={styles.right}>
+                            <span style={styles.amount(t.type)}>
+                                {t.type === 'inflow' ? '+' : '-'}₹{Number(t.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                            {username !== 'dad' && (
+                                <div style={styles.actions}>
+                                    <button 
+                                        style={styles.actionBtn} 
+                                        onClick={() => onEdit(t)}
+                                        title="Edit Transaction"
+                                        onMouseOver={(e) => e.currentTarget.style.color = 'var(--accent-primary)'}
+                                        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                                    >
+                                        <Pencil size={16} />
+                                    </button>
+                                    <button 
+                                        style={styles.actionBtn} 
+                                        onClick={() => onDelete(t._id)}
+                                        title="Delete Transaction"
+                                        onMouseOver={(e) => e.currentTarget.style.color = 'var(--danger)'}
+                                        onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </li>
                 ))}
             </ul>

@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import Transaction from './models/Transaction.js';
 import User from './models/User.js';
+import Category from './models/Category.js';
 
 dotenv.config();
 
@@ -42,11 +43,36 @@ const generalLimiter = rateLimit({
 });
 
 // Apply general rate limiter to all routes
-app.use('/api/', generalLimiter);
+app.use('/api', generalLimiter);
 
 // Database Connection
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
+    .then(async () => {
+        console.log('MongoDB Connected');
+        // Seed default categories if none exist
+        const count = await Category.countDocuments();
+        if (count === 0) {
+            const defaultCategories = [
+                { name: 'Salary', type: 'inflow' },
+                { name: 'Freelance', type: 'inflow' },
+                { name: 'Investment', type: 'inflow' },
+                { name: 'Gift', type: 'inflow' },
+                { name: 'Food', type: 'outflow' },
+                { name: 'Rent', type: 'outflow' },
+                { name: 'Loan', type: 'outflow' },
+                { name: 'Utilities', type: 'outflow' },
+                { name: 'Entertainment', type: 'outflow' },
+                { name: 'Transport', type: 'outflow' },
+                { name: 'Health', type: 'outflow' },
+                { name: 'Shopping', type: 'outflow' },
+                { name: 'Interest', type: 'inflow' },
+                { name: 'Other', type: 'inflow' },
+                { name: 'Other', type: 'outflow' },
+            ];
+            await Category.insertMany(defaultCategories);
+            console.log('Default categories seeded');
+        }
+    })
     .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Auth Middleware
@@ -168,10 +194,77 @@ app.post('/api/auth/change-password', authenticateToken, authLimiter, async (req
     }
 });
 
+// Category Routes
+app.get('/api/categories', authenticateToken, async (req, res) => {
+    try {
+        const categories = await Category.find({
+            $or: [
+                { userId: null },
+                { userId: req.user.id }
+            ]
+        }).sort({ name: 1 });
+        res.json(categories);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Transaction Routes (Protected)
+app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
+    console.log('PUT request received for transaction:', req.params.id);
+    try {
+        const { id } = req.params;
+        const { amount, source, date, type, isRecurring, bankName, endDate, category } = req.body;
+
+        // Find transaction and verify ownership
+        const transaction = await Transaction.findOne({ _id: id, userId: req.user.id });
+        if (!transaction) {
+            console.log('Transaction not found or unauthorized:', id);
+            return res.status(404).json({ error: 'Transaction not found or unauthorized' });
+        }
+
+        // Update fields if provided
+        if (amount !== undefined) transaction.amount = amount;
+        if (source !== undefined) transaction.source = source;
+        if (date !== undefined) transaction.date = date;
+        if (type !== undefined) transaction.type = type;
+        if (isRecurring !== undefined) transaction.isRecurring = isRecurring;
+        if (bankName !== undefined) transaction.bankName = bankName;
+        if (endDate !== undefined) transaction.endDate = endDate;
+        if (category !== undefined) transaction.category = category;
+
+        const updatedTransaction = await transaction.save();
+        console.log('Transaction updated successfully:', id);
+        res.json(updatedTransaction);
+    } catch (err) {
+        console.error('Error updating transaction:', err);
+        res.status(400).json({ error: err.message });
+    }
+});
+
+app.delete('/api/transactions/:id', authenticateToken, async (req, res) => {
+    console.log('DELETE request received for transaction:', req.params.id);
+    try {
+        const { id } = req.params;
+
+        // Find and delete if authorized
+        const result = await Transaction.findOneAndDelete({ _id: id, userId: req.user.id });
+        if (!result) {
+            console.log('Transaction not found or unauthorized for deletion:', id);
+            return res.status(404).json({ error: 'Transaction not found or unauthorized' });
+        }
+
+        console.log('Transaction deleted successfully:', id);
+        res.json({ message: 'Transaction deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting transaction:', err);
+        res.status(400).json({ error: err.message });
+    }
+});
+
 app.get('/api/transactions', authenticateToken, async (req, res) => {
     try {
-        const { month, year } = req.query;
+        const { month, year, category } = req.query;
 
         let query = { userId: req.user.id };
 
@@ -191,6 +284,11 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
             // Only month selected (All Years for that month)
             query.date = { $regex: `.*-${String(month).padStart(2, '0')}-.*` };
         }
+        
+        // Filter by category
+        if (category) {
+            query.category = category;
+        }
         // If neither year nor month is selected, return all transactions (no date filter)
 
         const transactions = await Transaction.find(query).sort({ date: 1, createdAt: 1 });
@@ -202,7 +300,7 @@ app.get('/api/transactions', authenticateToken, async (req, res) => {
 
 app.post('/api/transactions', authenticateToken, async (req, res) => {
     try {
-        const { amount, source, date, type, isRecurring, bankName, endDate } = req.body;
+        const { amount, source, date, type, isRecurring, bankName, endDate, category } = req.body;
 
         // Validate input
         if (!amount || !source || !date || !type) {
@@ -233,6 +331,7 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
                     isRecurring: true,
                     bankName,
                     endDate,
+                    category: category || 'Other',
                     userId: req.user.id
                 });
 
@@ -254,6 +353,7 @@ app.post('/api/transactions', authenticateToken, async (req, res) => {
                 isRecurring: false,
                 bankName: bankName || '',
                 endDate: '',
+                category: category || 'Other',
                 userId: req.user.id
             });
             const savedTransaction = await newTransaction.save();

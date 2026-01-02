@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-const TransactionForm = ({ isOpen, onClose, onSubmit, type }) => {
+const TransactionForm = ({ isOpen, onClose, onSubmit, type, initialData, categories }) => {
     const [formData, setFormData] = useState({
         amount: '',
         source: '',
@@ -9,7 +9,32 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, type }) => {
         isRecurring: false,
         bankName: '',
         endDate: '',
+        category: 'Other',
     });
+
+    React.useEffect(() => {
+        if (initialData) {
+            setFormData({
+                amount: initialData.amount,
+                source: initialData.source,
+                date: initialData.date.split('T')[0],
+                isRecurring: initialData.isRecurring || false,
+                bankName: initialData.bankName || '',
+                endDate: initialData.endDate ? initialData.endDate.split('T')[0] : '',
+                category: initialData.category || 'Other',
+            });
+        } else {
+            setFormData({
+                amount: '',
+                source: '',
+                date: new Date().toISOString().split('T')[0],
+                isRecurring: false,
+                bankName: '',
+                endDate: '',
+                category: 'Other',
+            });
+        }
+    }, [initialData, isOpen]);
 
     if (!isOpen) return null;
 
@@ -23,16 +48,8 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, type }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit({ ...formData, type, id: Date.now() });
+        onSubmit({ ...formData, type, _id: initialData?._id });
         onClose();
-        setFormData({
-            amount: '',
-            source: '',
-            date: new Date().toISOString().split('T')[0],
-            isRecurring: false,
-            bankName: '',
-            endDate: '',
-        });
     };
 
     const styles = {
@@ -104,7 +121,7 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, type }) => {
         <div style={styles.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div style={styles.modal}>
                 <div style={styles.header}>
-                    <h2 style={styles.title}>Add {type === 'inflow' ? 'Inflow' : 'Outflow'}</h2>
+                    <h2 style={styles.title}>{initialData ? 'Edit' : 'Add'} {type === 'inflow' ? 'Inflow' : 'Outflow'}</h2>
                     <button style={styles.closeBtn} onClick={onClose}><X size={20} /></button>
                 </div>
 
@@ -133,6 +150,37 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, type }) => {
                             onChange={handleChange}
                             placeholder={type === 'inflow' ? 'e.g. Salary, Freelance' : 'e.g. Rent, Groceries'}
                         />
+                    </div>
+
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Category</label>
+                        <select
+                            name="category"
+                            value={formData.category}
+                            onChange={handleChange}
+                            required
+                            style={{
+                                width: '100%',
+                                padding: 'clamp(0.625rem, 2vw, 0.75rem)',
+                                background: 'var(--bg-primary)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                color: 'var(--text-primary)',
+                                fontSize: 'clamp(0.9rem, 2.5vw, 1rem)',
+                                appearance: 'none',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <option value="Other">Other</option>
+                            {categories
+                                .filter(c => c.type === type)
+                                .map(cat => (
+                                    <option key={cat._id} value={cat.name}>
+                                        {cat.name}
+                                    </option>
+                                ))
+                            }
+                        </select>
                     </div>
 
                     <div style={styles.formGroup}>
@@ -192,7 +240,7 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, type }) => {
                     )}
 
                     <button type="submit" style={styles.submitBtn}>
-                        Add Transaction
+                        {initialData ? 'Update' : 'Add'} Transaction
                     </button>
                 </form>
             </div>

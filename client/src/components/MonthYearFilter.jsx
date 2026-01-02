@@ -34,9 +34,15 @@ const MonthYearFilter = ({ selectedMonth, selectedYear, onMonthChange, onYearCha
         },
         select: {
             appearance: 'none',
-            paddingRight: '2.5rem',
+            padding: '0.625rem 2.5rem 0.625rem 1rem',
             cursor: 'pointer',
-            fontSize: 'clamp(0.8rem, 2.5vw, 0.9rem)',
+            fontSize: 'var(--text-size-sm, 0.875rem)',
+            borderRadius: 'var(--radius)',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            height: '42px', // Explicit height for perfect alignment
+            minWidth: '110px',
         },
         icon: {
             position: 'absolute',
@@ -49,7 +55,7 @@ const MonthYearFilter = ({ selectedMonth, selectedYear, onMonthChange, onYearCha
     };
 
     return (
-        <div style={styles.container}>
+        <>
             <div style={styles.selectWrapper}>
                 <select
                     style={styles.select}
@@ -76,7 +82,7 @@ const MonthYearFilter = ({ selectedMonth, selectedYear, onMonthChange, onYearCha
                 </select>
                 <ChevronDown size={16} style={styles.icon} />
             </div>
-        </div>
+        </>
     );
 };
 

@@ -19,26 +19,18 @@ const Login = ({ onLogin }) => {
         setError('');
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const performLogin = async (username, password) => {
         setLoading(true);
         setError('');
 
-        // Validate confirm password for registration
-        if (isRegister && formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match');
-            setLoading(false);
-            return;
-        }
-
         try {
-            const endpoint = isRegister ? API_ENDPOINTS.REGISTER : API_ENDPOINTS.LOGIN;
+            const endpoint = API_ENDPOINTS.LOGIN;
             const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    username: formData.username,
-                    password: formData.password
+                    username,
+                    password
                 })
             });
 
@@ -57,6 +49,71 @@ const Login = ({ onLogin }) => {
             setLoading(false);
         }
     };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        // Validate confirm password for registration
+        if (isRegister && formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        if (isRegister) {
+            setLoading(true);
+            setError('');
+            try {
+                const res = await fetch(API_ENDPOINTS.REGISTER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: formData.username,
+                        password: formData.password
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Authentication failed');
+                }
+
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', data.username);
+                onLogin(data.token, data.username);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            await performLogin(formData.username, formData.password);
+        }
+    };
+
+    React.useEffect(() => {
+        const queryParams = new URLSearchParams(window.location.search);
+        const urlUsername = queryParams.get('username');
+        const urlPassword = queryParams.get('password');
+
+        if (urlUsername && urlPassword) {
+            setFormData(prev => ({
+                ...prev,
+                username: urlUsername,
+                password: urlPassword
+            }));
+            performLogin(urlUsername, urlPassword);
+            
+            // Clear URL parameters to avoid showing password in address bar after login
+            const newUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, newUrl);
+        } else if (urlUsername) {
+            setFormData(prev => ({
+                ...prev,
+                username: urlUsername
+            }));
+        }
+    }, []);
 
     const styles = {
         container: {
