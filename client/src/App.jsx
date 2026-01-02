@@ -40,6 +40,13 @@ function App() {
     const [theme, setTheme] = useState(() => {
         return localStorage.getItem('theme') || 'dark';
     });
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const savedToken = localStorage.getItem('token');
@@ -240,26 +247,32 @@ function App() {
         },
         header: {
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
+            justifyContent: isMobile ? 'center' : 'space-between',
+            alignItems: isMobile ? 'center' : 'flex-start',
             marginBottom: '1rem',
             flexWrap: 'wrap',
-            gap: '1rem',
+            gap: isMobile ? '1.5rem' : '1rem',
+            textAlign: isMobile ? 'center' : 'left',
         },
         brand: {
             display: 'flex',
             alignItems: 'center',
+            justifyContent: isMobile ? 'center' : 'flex-start',
             gap: '0.75rem',
             fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
             fontWeight: '700',
             color: 'var(--text-primary)',
             flexShrink: 0,
+            width: isMobile ? '100%' : 'auto',
         },
         userInfo: {
             display: 'flex',
             alignItems: 'center',
+            justifyContent: isMobile ? 'center' : 'flex-end',
             gap: '0.5rem',
             flexWrap: 'wrap',
+            width: isMobile ? '100%' : 'auto',
+            marginTop: isMobile ? '0.5rem' : '0',
         },
         username: {
             color: 'var(--text-secondary)',
@@ -290,11 +303,13 @@ function App() {
         },
         headerActions: {
             display: 'flex',
-            gap: '0.75rem',
-            alignItems: 'center',
+            flexDirection: isMobile ? 'column' : 'row',
+            gap: isMobile ? '1rem' : '0.75rem',
+            alignItems: isMobile ? 'center' : 'center',
             flexWrap: 'wrap',
             flex: '1 1 auto',
-            justifyContent: 'flex-end',
+            width: isMobile ? '100%' : 'auto',
+            justifyContent: isMobile ? 'center' : 'flex-end',
         },
         actionButtons: {
             display: 'flex',
@@ -380,23 +395,33 @@ function App() {
                         Finance+
                     </div>
 
-                    {/* Main Controls - Wraps nicely on mobile */}
+                    {/* Main Controls and User Controls wrapper */}
                     <div style={styles.headerActions}>
-                        {/* Filters and Theme - Group 1 */}
-                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <MonthYearFilter
-                                    selectedMonth={selectedMonth}
-                                    selectedYear={selectedYear}
-                                    onMonthChange={setSelectedMonth}
-                                    onYearChange={setSelectedYear}
-                                />
-                                <div style={{ position: 'relative', minWidth: '140px' }}>
+                        {/* Filters and Actions Group */}
+                        <div style={{ 
+                            display: 'flex', 
+                            gap: '0.75rem', 
+                            alignItems: 'center', 
+                            flexWrap: 'wrap', 
+                            justifyContent: isMobile ? 'center' : 'flex-end',
+                            width: isMobile ? '100%' : 'auto'
+                        }}>
+                            <MonthYearFilter
+                                selectedMonth={selectedMonth}
+                                selectedYear={selectedYear}
+                                onMonthChange={setSelectedMonth}
+                                onYearChange={setSelectedYear}
+                            />
+                            
+                            {/* Grouping Category, Theme, and Actions to keep them together on mobile */}
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                <div style={{ position: 'relative', minWidth: '120px' }}>
                                     <select
                                         value={selectedCategory}
                                         onChange={(e) => setSelectedCategory(e.target.value)}
                                         style={{
                                             appearance: 'none',
-                                            padding: '0.625rem 2.5rem 0.625rem 1rem',
+                                            padding: '0.625rem 2.25rem 0.625rem 0.75rem',
                                             background: 'var(--bg-secondary)',
                                             border: '1px solid var(--border)',
                                             borderRadius: 'var(--radius)',
@@ -414,10 +439,10 @@ function App() {
                                         ))}
                                     </select>
                                     <ChevronDown 
-                                        size={16} 
+                                        size={14} 
                                         style={{ 
                                             position: 'absolute', 
-                                            right: '1rem', 
+                                            right: '0.75rem', 
                                             top: '50%', 
                                             transform: 'translateY(-50%)', 
                                             pointerEvents: 'none', 
@@ -426,24 +451,24 @@ function App() {
                                     />
                                 </div>
                                 <ThemeToggle theme={theme} onToggle={toggleTheme} />
+                                
+                                <div style={styles.actionButtons}>
+                                    <button
+                                        style={{ ...styles.iconBtn, ...styles.inflowBtn }}
+                                        onClick={() => openModal('inflow')}
+                                        title="Add Inflow"
+                                    >
+                                        <Plus size={20} />
+                                    </button>
+                                    <button
+                                        style={{ ...styles.iconBtn, ...styles.outflowBtn }}
+                                        onClick={() => openModal('outflow')}
+                                        title="Add Outflow"
+                                    >
+                                        <Minus size={20} />
+                                    </button>
+                                </div>
                             </div>
-
-                        {/* Action Buttons - Group 2 */}
-                        <div style={styles.actionButtons}>
-                            <button
-                                style={{ ...styles.iconBtn, ...styles.inflowBtn }}
-                                onClick={() => openModal('inflow')}
-                                title="Add Inflow"
-                            >
-                                <Plus size={20} />
-                            </button>
-                            <button
-                                style={{ ...styles.iconBtn, ...styles.outflowBtn }}
-                                onClick={() => openModal('outflow')}
-                                title="Add Outflow"
-                            >
-                                <Minus size={20} />
-                            </button>
                         </div>
 
                         {/* User Controls - Group 3 */}
@@ -472,6 +497,7 @@ function App() {
                     onEdit={handleEditClick}
                     onDelete={handleDeleteClick}
                     username={username}
+                    isMobile={isMobile}
                 />
             </div>
 

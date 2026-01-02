@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, Repeat, ArrowUpDown, Pencil, Trash2 } from 'lucide-react';
 import { formatDate } from '../config/utilities';
 
-const TransactionList = ({ transactions, onEdit, onDelete, username }) => {
+const TransactionList = ({ transactions, onEdit, onDelete, username, isMobile }) => {
     const [sortOrder, setSortOrder] = useState('latest'); // 'latest' or 'oldest'
 
     const toggleSort = () => {
@@ -88,9 +88,15 @@ const TransactionList = ({ transactions, onEdit, onDelete, username }) => {
             fontWeight: '500',
             color: 'var(--text-primary)',
             fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            ...(isMobile ? {
+                wordBreak: 'break-word',
+                overflowWrap: 'anywhere',
+                lineHeight: '1.4',
+            } : {
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+            }),
         },
         meta: {
             fontSize: 'clamp(0.7rem, 2vw, 0.85rem)',
