@@ -3,7 +3,7 @@ import { ArrowUpRight, ArrowDownRight, Repeat, ArrowUpDown, Pencil, Trash2 } fro
 import { formatDate } from '../config/utilities';
 
 const TransactionList = ({ transactions, onEdit, onDelete, username, isMobile }) => {
-    const [sortOrder, setSortOrder] = useState('latest'); // 'latest' or 'oldest'
+    const [sortOrder, setSortOrder] = useState(username === 'dad' ? 'latest' : 'oldest'); // 'latest' or 'oldest'
 
     const toggleSort = () => {
         setSortOrder(prev => prev === 'latest' ? 'oldest' : 'latest');
