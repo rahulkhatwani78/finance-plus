@@ -202,9 +202,17 @@ const TransactionForm = ({ isOpen, onClose, onSubmit, type, initialData, categor
                                     type="checkbox"
                                     checked={formData.isRecurring}
                                     onChange={handleChange}
+                                    disabled={!!initialData && initialData.isRecurring}
                                 />
                                 Recurring Payment (Monthly)
                             </label>
+                            {initialData && initialData.isRecurring && (
+                                <p style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', marginTop: '0.25rem' }}>
+                                    {initialData.mode === 'all' 
+                                        ? 'Note: Changes will be reflected for this and all matching future transactions.' 
+                                        : 'Note: Changes will be applied ONLY to this instance.'}
+                                </p>
+                            )}
                         </div>
                     )}
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle, X } from 'lucide-react';
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, type = 'danger' }) => {
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirmText, type = 'danger', options }) => {
     if (!isOpen) return null;
 
     const styles = {
@@ -25,7 +25,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
             borderRadius: 'var(--radius)',
             border: '1px solid var(--border)',
             width: '100%',
-            maxWidth: '400px',
+            maxWidth: '450px',
             boxShadow: 'var(--shadow)',
             position: 'relative',
             animation: 'slideUp 0.3s ease-out',
@@ -56,28 +56,25 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
         },
         actions: {
             display: 'flex',
-            gap: '1rem',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
         },
-        cancelBtn: {
-            flex: 1,
-            padding: '0.75rem',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            color: 'var(--text-secondary)',
+        btn: (btnType, isFullWidth) => ({
+            flex: isFullWidth ? '1 1 100%' : '1 1 auto',
+            minWidth: '120px',
+            padding: '0.75rem 1rem',
+            borderRadius: '8px',
             fontWeight: '600',
             cursor: 'pointer',
             transition: 'all 0.2s',
-        },
-        confirmBtn: {
-            flex: 1,
-            padding: '0.75rem',
-            background: type === 'danger' ? 'var(--danger)' : 'var(--accent-primary)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-        },
+            border: btnType === 'secondary' ? '1px solid var(--border)' : 'none',
+            background: btnType === 'danger' ? 'var(--danger)' : 
+                        btnType === 'primary' ? 'var(--accent-primary)' : 
+                        btnType === 'success' ? 'var(--success)' : 'transparent',
+            color: btnType === 'secondary' ? 'var(--text-secondary)' : 'white',
+            fontSize: '0.9rem',
+        }),
         closeBtn: {
             position: 'absolute',
             top: '1rem',
@@ -100,12 +97,29 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
                 <h2 style={styles.title}>{title}</h2>
                 <p style={styles.message}>{message}</p>
                 <div style={styles.actions}>
-                    <button style={styles.cancelBtn} onClick={onClose}>
-                        Cancel
-                    </button>
-                    <button style={styles.confirmBtn} onClick={onConfirm}>
-                        {confirmText || 'Confirm'}
-                    </button>
+                    {options ? (
+                        options.map((opt, idx) => (
+                            <button 
+                                key={idx} 
+                                style={styles.btn(opt.type || 'secondary', opt.fullWidth)} 
+                                onClick={() => {
+                                    opt.onClick();
+                                    if (!opt.keepOpen) onClose();
+                                }}
+                            >
+                                {opt.label}
+                            </button>
+                        ))
+                    ) : (
+                        <>
+                            <button style={styles.btn('secondary')} onClick={onClose}>
+                                Cancel
+                            </button>
+                            <button style={styles.btn(type)} onClick={onConfirm}>
+                                {confirmText || 'Confirm'}
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

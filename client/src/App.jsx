@@ -102,7 +102,9 @@ function App() {
             setLoading(false);
 
             // Show upcoming modal if there are recurring transactions
-            const hasRecurring = res.data.some(t => t.type === 'outflow' && t.isRecurring);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const hasRecurring = res.data.some(t => t.type === 'outflow' && t.isRecurring && new Date(t.date) >= today);
             if (hasRecurring) {
                 setShowUpcomingModal(true);
             }
@@ -144,13 +146,19 @@ function App() {
         }
     };
 
-    const updateTransaction = async (transactionData) => {
+    const updateTransaction = async (transactionData, mode = 'single') => {
         try {
             const { _id, ...data } = transactionData;
-            const res = await axios.put(`${API_ENDPOINTS.TRANSACTIONS}/${_id}`, data, {
+            const res = await axios.put(`${API_ENDPOINTS.TRANSACTIONS}/${_id}`, { ...data, mode }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setTransactions(prev => prev.map(t => t._id === _id ? res.data : t));
+            
+            // If we updated all recurring instances, we must re-fetch everything
+            if (mode === 'all') {
+                fetchTransactions();
+            } else {
+                setTransactions(prev => prev.map(t => t._id === _id ? res.data : t));
+            }
             setEditingTransaction(null);
         } catch (error) {
             console.error('Error updating transaction:', error);
@@ -158,12 +166,21 @@ function App() {
         }
     };
 
-    const deleteTransaction = async (id) => {
+    const deleteTransaction = async (id, mode = 'single') => {
         try {
-            await axios.delete(`${API_ENDPOINTS.TRANSACTIONS}/${id}`, {
+            const transactionToDelete = transactions.find(t => t._id === id);
+            await axios.delete(`${API_ENDPOINTS.TRANSACTIONS}/${id}?mode=${mode}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setTransactions(prev => prev.filter(t => t._id !== id));
+            
+            if (mode === 'all') {
+                // Remove this and all future transactions with same amount and source
+                setTransactions(prev => prev.filter(t => 
+                    !(t.isRecurring && t.amount === transactionToDelete.amount && t.source === transactionToDelete.source && t.date >= transactionToDelete.date)
+                ));
+            } else {
+                setTransactions(prev => prev.filter(t => t._id !== id));
+            }
         } catch (error) {
             console.error('Error deleting transaction:', error);
             alert('Failed to delete transaction');
@@ -172,22 +189,50 @@ function App() {
 
     const handleDeleteClick = (id) => {
         const transaction = transactions.find(t => t._id === id);
-        setConfirmModal({
-            isOpen: true,
-            title: 'Delete Transaction?',
-            message: `Are you sure you want to delete "${transaction?.source}"? This action cannot be undone.`,
-            confirmText: 'Delete',
-            type: 'danger',
-            onConfirm: () => {
-                deleteTransaction(id);
-                setConfirmModal(prev => ({ ...prev, isOpen: false }));
-            }
-        });
+        const isRecurring = transaction?.isRecurring;
+        
+        if (isRecurring) {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Delete Recurring Transaction',
+                message: `"${transaction.source}" is a recurring transaction. Would you like to delete only this instance or this and all future transactions?`,
+                type: 'danger',
+                options: [
+                    { 
+                        label: 'Just this one', 
+                        type: 'danger', 
+                        onClick: () => deleteTransaction(id, 'single') 
+                    },
+                    { 
+                        label: 'This and future', 
+                        type: 'danger', 
+                        onClick: () => deleteTransaction(id, 'all') 
+                    },
+                    { 
+                        label: 'Cancel', 
+                        type: 'secondary', 
+                        onClick: () => {} 
+                    }
+                ]
+            });
+        } else {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Delete Transaction?',
+                message: `Are you sure you want to delete "${transaction?.source}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                type: 'danger',
+                onConfirm: () => {
+                    deleteTransaction(id);
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
+            });
+        }
     };
 
     const handleSubmitTransaction = (data) => {
         if (data._id) {
-            updateTransaction(data);
+            updateTransaction(data, editingTransaction?.mode || 'single');
         } else {
             addTransaction(data);
         }
@@ -200,19 +245,55 @@ function App() {
     };
 
     const handleEditClick = (transaction) => {
-        setConfirmModal({
-            isOpen: true,
-            title: 'Edit Transaction?',
-            message: `Would you like to modify the transaction details for "${transaction.source}"?`,
-            confirmText: 'Edit Now',
-            type: 'primary',
-            onConfirm: () => {
-                setEditingTransaction(transaction);
-                setModalType(transaction.type);
-                setIsModalOpen(true);
-                setConfirmModal(prev => ({ ...prev, isOpen: false }));
-            }
-        });
+        const isRecurring = transaction.isRecurring;
+        
+        if (isRecurring) {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Edit Recurring Transaction',
+                message: `"${transaction.source}" is a recurring transaction. Would you like to edit only this instance or apply changes to this and all future matching transactions?`,
+                type: 'primary',
+                options: [
+                    { 
+                        label: 'Just this one', 
+                        type: 'primary', 
+                        onClick: () => {
+                            setEditingTransaction({ ...transaction, mode: 'single' });
+                            setModalType(transaction.type);
+                            setIsModalOpen(true);
+                        } 
+                    },
+                    { 
+                        label: 'This and future', 
+                        type: 'primary', 
+                        onClick: () => {
+                            setEditingTransaction({ ...transaction, mode: 'all' });
+                            setModalType(transaction.type);
+                            setIsModalOpen(true);
+                        } 
+                    },
+                    { 
+                        label: 'Cancel', 
+                        type: 'secondary', 
+                        onClick: () => {} 
+                    }
+                ]
+            });
+        } else {
+            setConfirmModal({
+                isOpen: true,
+                title: 'Edit Transaction?',
+                message: `Would you like to modify the transaction details for "${transaction.source}"?`,
+                confirmText: 'Edit Now',
+                type: 'primary',
+                onConfirm: () => {
+                    setEditingTransaction(transaction);
+                    setModalType(transaction.type);
+                    setIsModalOpen(true);
+                    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }
+            });
+        }
     };
 
     const closeFormModal = () => {
@@ -530,6 +611,7 @@ function App() {
                 message={confirmModal.message}
                 confirmText={confirmModal.confirmText}
                 type={confirmModal.type}
+                options={confirmModal.options}
             />
         </div>
     );

@@ -214,7 +214,7 @@ app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
     console.log('PUT request received for transaction:', req.params.id);
     try {
         const { id } = req.params;
-        const { amount, source, date, type, isRecurring, bankName, endDate, category } = req.body;
+        const { amount, source, date, type, isRecurring, bankName, endDate, category, mode } = req.body;
 
         // Find transaction and verify ownership
         const transaction = await Transaction.findOne({ _id: id, userId: req.user.id });
@@ -223,7 +223,41 @@ app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'Transaction not found or unauthorized' });
         }
 
-        // Update fields if provided
+        // If it's a recurring transaction AND mode is 'all', update all linked transactions 
+        if (transaction.isRecurring && mode === 'all') {
+            const updateData = {};
+            if (amount !== undefined) updateData.amount = amount;
+            if (source !== undefined) updateData.source = source;
+            if (type !== undefined) updateData.type = type;
+            if (bankName !== undefined) updateData.bankName = bankName;
+            if (endDate !== undefined) updateData.endDate = endDate;
+            if (category !== undefined) updateData.category = category;
+
+            // Update all transactions that match identifying info AND are on or after current date
+            await Transaction.updateMany(
+                { 
+                    amount: transaction.amount, 
+                    source: transaction.source, 
+                    userId: req.user.id,
+                    isRecurring: true,
+                    date: { $gte: transaction.date }
+                },
+                { $set: updateData }
+            );
+
+            // Date is unique to each instance in a recurring series, 
+            // but we allow updating it for the specific one being edited
+            if (date !== undefined) {
+                transaction.date = date;
+                await transaction.save();
+            }
+
+            const updatedTransaction = await Transaction.findById(id);
+            console.log('All linked recurring transactions updated successfully');
+            return res.json(updatedTransaction);
+        }
+
+        // Normal single transaction update (or recurring instance update if mode !== 'all')
         if (amount !== undefined) transaction.amount = amount;
         if (source !== undefined) transaction.source = source;
         if (date !== undefined) transaction.date = date;
@@ -234,7 +268,7 @@ app.put('/api/transactions/:id', authenticateToken, async (req, res) => {
         if (category !== undefined) transaction.category = category;
 
         const updatedTransaction = await transaction.save();
-        console.log('Transaction updated successfully:', id);
+        console.log('Single transaction updated successfully:', id);
         res.json(updatedTransaction);
     } catch (err) {
         console.error('Error updating transaction:', err);
@@ -246,15 +280,30 @@ app.delete('/api/transactions/:id', authenticateToken, async (req, res) => {
     console.log('DELETE request received for transaction:', req.params.id);
     try {
         const { id } = req.params;
+        const { mode } = req.query; // Check for mode=all in query string
 
-        // Find and delete if authorized
-        const result = await Transaction.findOneAndDelete({ _id: id, userId: req.user.id });
-        if (!result) {
-            console.log('Transaction not found or unauthorized for deletion:', id);
+        // Find transaction to check if it's recurring
+        const transaction = await Transaction.findOne({ _id: id, userId: req.user.id });
+        if (!transaction) {
             return res.status(404).json({ error: 'Transaction not found or unauthorized' });
         }
 
-        console.log('Transaction deleted successfully:', id);
+        if (transaction.isRecurring && mode === 'all') {
+            // Delete current and future transactions based on amount, source, and userId
+            await Transaction.deleteMany({ 
+                amount: transaction.amount, 
+                source: transaction.source, 
+                userId: req.user.id,
+                isRecurring: true,
+                date: { $gte: transaction.date }
+            });
+            console.log('Current and future recurring transactions deleted successfully');
+        } else {
+            // Delete single transaction instance
+            await Transaction.findByIdAndDelete(id);
+            console.log('Single transaction instance deleted successfully:', id);
+        }
+
         res.json({ message: 'Transaction deleted successfully' });
     } catch (err) {
         console.error('Error deleting transaction:', err);

@@ -140,7 +140,23 @@ const TransactionList = ({ transactions, onEdit, onDelete, username, isMobile })
             textAlign: 'center',
             color: 'var(--text-secondary)',
             fontSize: 'clamp(0.85rem, 2.5vw, 0.95rem)',
+        },
+        dueTodayPill: {
+            background: 'rgba(245, 158, 11, 0.15)',
+            color: '#f59e0b',
+            padding: '2px 8px',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: '600',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.02em',
         }
+    };
+
+    const isToday = (dateStr) => {
+        const today = new Date().toISOString().split('T')[0];
+        return dateStr === today;
     };
 
     if (!transactions.length) {
@@ -176,6 +192,9 @@ const TransactionList = ({ transactions, onEdit, onDelete, username, isMobile })
                                 <span style={styles.source}>{t.source}</span>
                                 <span style={styles.meta}>
                                     {formatDate(t.date)}
+                                    {isToday(t.date) && (
+                                        <span style={styles.dueTodayPill}>Due Today</span>
+                                    )}
                                     {t.category && (
                                         <span style={{ 
                                             background: 'var(--bg-primary)', 

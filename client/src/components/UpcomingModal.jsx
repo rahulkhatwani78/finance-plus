@@ -5,7 +5,9 @@ import { formatDate } from '../config/utilities';
 const UpcomingModal = ({ isOpen, onClose, transactions }) => {
     if (!isOpen) return null;
 
-    const recurringTransactions = transactions.filter(t => t.type === 'outflow' && t.isRecurring && new Date(t.date) > new Date());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const recurringTransactions = transactions.filter(t => t.type === 'outflow' && t.isRecurring && new Date(t.date) >= today);
     const sortedRecurringTransactions = recurringTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const styles = {
@@ -93,7 +95,23 @@ const UpcomingModal = ({ isOpen, onClose, transactions }) => {
             borderRadius: '4px',
             fontSize: '0.75rem',
             fontWeight: '500',
+        },
+        dueTodayPill: {
+            background: 'rgba(245, 158, 11, 0.15)',
+            color: '#f59e0b',
+            padding: '0.25rem 0.625rem',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: '700',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            textTransform: 'uppercase',
+            marginLeft: '0.5rem'
         }
+    };
+
+    const isToday = (dateStr) => {
+        const today = new Date().toISOString().split('T')[0];
+        return dateStr === today;
     };
 
     return (
@@ -120,10 +138,13 @@ const UpcomingModal = ({ isOpen, onClose, transactions }) => {
                                     <span style={styles.amount}>₹{Number(t.amount).toLocaleString()}</span>
                                 </div>
                                 <div style={styles.details}>
-                                    <span style={styles.badge}>
-                                        <Repeat size={12} />
-                                        Monthly Payment
-                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={styles.badge}>
+                                            <Repeat size={12} />
+                                            Monthly Payment
+                                        </span>
+                                        {isToday(t.date) && <span style={styles.dueTodayPill}>Due Today</span>}
+                                    </div>
                                     {t.bankName && <span>Bank: {t.bankName}</span>}
                                     {t.date && <span>Date: {formatDate(t.date)}</span>}
                                 </div>
