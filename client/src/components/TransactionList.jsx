@@ -192,7 +192,7 @@ const TransactionList = ({ transactions, onEdit, onDelete, username, isMobile })
                                 <span style={styles.source}>{t.source}</span>
                                 <span style={styles.meta}>
                                     {formatDate(t.date)}
-                                    {isToday(t.date) && (
+                                    {isToday(t.date) && t.isRecurring && (
                                         <span style={styles.dueTodayPill}>Due Today</span>
                                     )}
                                     {t.category && (
