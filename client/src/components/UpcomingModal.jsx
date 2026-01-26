@@ -143,7 +143,7 @@ const UpcomingModal = ({ isOpen, onClose, transactions }) => {
                                             <Repeat size={12} />
                                             Monthly Payment
                                         </span>
-                                        {isToday(t.date) && <span style={styles.dueTodayPill}>Due Today</span>}
+                                        {isToday(t.date) && t.type === 'outflow' && <span style={styles.dueTodayPill}>Due Today</span>}
                                     </div>
                                     {t.bankName && <span>Bank: {t.bankName}</span>}
                                     {t.date && <span>Date: {formatDate(t.date)}</span>}
