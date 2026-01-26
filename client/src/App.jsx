@@ -104,7 +104,7 @@ function App() {
             // Show upcoming modal if there are recurring transactions
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const hasRecurring = res.data.some(t => t.type === 'outflow' && t.isRecurring && new Date(t.date) >= today);
+            const hasRecurring = res.data.some(t => t.type === 'outflow' && t.isRecurring && new Date(t.date) >= today && new Date(t.date).getMonth() === today.getMonth() && new Date(t.date).getFullYear() === today.getFullYear());
             if (hasRecurring) {
                 setShowUpcomingModal(true);
             }
